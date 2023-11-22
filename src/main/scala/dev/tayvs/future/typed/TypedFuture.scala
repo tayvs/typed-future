@@ -1,4 +1,6 @@
-import TypedFuture.TypedFutureConstructor
+package dev.tayvs.future.typed
+
+import dev.tayvs.future.typed.TypedFuture.TypedFutureConstructor
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
@@ -31,7 +33,7 @@ class TypedFuture[T, +E <: Throwable : ClassTag] private(val fut: Future[T]) /*e
   def recover[U >: T](pf: PartialFunction[E, U])(implicit executor: ExecutionContext) =
     new TypedFuture[U, E](fut.recover { case e: E if pf.isDefinedAt(e) => pf(e) })
 
-  //  def recoverWith[U >: T, E1 <: Throwable : ClassTag](pf: PartialFunction[E, TypedFuture[U, E1]])(implicit executor: ExecutionContext) = fut.recoverWith(pf)
+  //  def recoverWith[U >: T, E1 <: Throwable : ClassTag](pf: PartialFunction[E, dev.tayvs.future.typed.TypedFuture[U, E1]])(implicit executor: ExecutionContext) = fut.recoverWith(pf)
 
 //  def zip[U](that: Future[U]) = fut.zip(that)
 
@@ -77,13 +79,13 @@ object TypedFuture {
     def withExpectedError[E <: Throwable : ClassTag]: TypedFuture[T, E] = new TypedFuture[T, E](fut)
   }
 
-  //  def apply[T, E <: Throwable: ClassTag](fut: Future[T]): TypedFuture[T, E] = new TypedFuture[T, E](fut)
+  //  def apply[T, E <: Throwable: ClassTag](fut: Future[T]): dev.tayvs.future.typed.TypedFuture[T, E] = new dev.tayvs.future.typed.TypedFuture[T, E](fut)
   def apply[E <: Throwable /*: ClassTag*/ ] = new Apply[E]
 
-  //  def successful[T, E <: Throwable: ClassTag](value: T): TypedFuture[T, E] = new TypedFuture[T, E](Future.successful(value))
+  //  def successful[T, E <: Throwable: ClassTag](value: T): dev.tayvs.future.typed.TypedFuture[T, E] = new dev.tayvs.future.typed.TypedFuture[T, E](Future.successful(value))
   def successful[E <: Throwable /*: ClassTag*/ ]: Successful[E] = new Successful[E]
 
-  //  def failed[E <: Throwable: ClassTag, T](error: E): TypedFuture[T, E] = new TypedFuture[T, E](Future.failed(error))
+  //  def failed[E <: Throwable: ClassTag, T](error: E): dev.tayvs.future.typed.TypedFuture[T, E] = new dev.tayvs.future.typed.TypedFuture[T, E](Future.failed(error))
   def failed[T]: Failed[T] = new Failed[T]
 
   def fromEither[E <: Throwable : ClassTag, T](e: Either[E, T]): TypedFuture[T, E] = e match {

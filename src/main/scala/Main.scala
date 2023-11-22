@@ -1,4 +1,5 @@
-import TypedFuture.TypedFutureConstructor
+import dev.tayvs.future.typed.TypedFuture
+import dev.tayvs.future.typed.TypedFuture.TypedFutureConstructor
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -27,6 +28,4 @@ object Main extends App {
     .successful(12)
     .recover { case t => 21 }
 
-
-//  Thread.sleep(1000)
 }
