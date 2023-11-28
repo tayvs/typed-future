@@ -91,6 +91,12 @@ class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T
       }
     ))
 
+  def recoverUnexpectedError[T1 >: T, E1 >: E <: Throwable : ClassTag](f: PartialFunction[Throwable, Either[E, T]])(implicit executor: ExecutionContext): TypedFutureWrapper[T1, E1] =
+    new TypedFutureWrapper(fut.recoverWith {
+//      case e: E => Future.failed(e)
+      case e if !e.isInstanceOf[E] && f.isDefinedAt(e) => Future.fromTry(f(e).toTry)
+    })
+
   def toClassic: Future[T] = fut
 
   def toClassicSafe: Future[Either[E, T]] =
