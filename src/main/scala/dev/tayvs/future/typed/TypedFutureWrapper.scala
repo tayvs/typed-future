@@ -1,6 +1,7 @@
 package dev.tayvs.future.typed
 
-import dev.tayvs.future.typed.TypedFutureWrapper.TypedFutureConstructor
+import dev.tayvs.future.typed.TypedFutureWrapper.{PureFuture, TypedFutureConstructor}
+//import dev.tayvs.future.typed.v2.PureFuture
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.parasitic
@@ -9,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 
 class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T]) /*extends AnyVal*/ {
 
-  def failed: TypedFutureWrapper[E, Throwable] = TypedFutureWrapper(fut.failed.flatMap {
+  def failed: TypedFutureWrapper[E, Throwable] = new TypedFutureWrapper(fut.failed.flatMap {
     case e: E => Future.successful(e)
     case t => Future.failed(t)
   }(parasitic))
@@ -52,6 +53,9 @@ class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T
   def recover[U >: T](pf: PartialFunction[E, U])(implicit executor: ExecutionContext): TypedFutureWrapper[U, E] =
     new TypedFutureWrapper[U, E](fut.recover { case e: E if pf.isDefinedAt(e) => pf(e) })
 
+  def recover[U >: T](pf: E => U)(implicit executor: ExecutionContext): PureFuture[U] =
+    new TypedFutureWrapper[U, Nothing](fut.recover { case e: E => pf(e) })
+
   def recoverWith[U >: T, E1 >: E <: Throwable : ClassTag](pf: PartialFunction[E, TypedFutureWrapper[U, E1]])(implicit executor: ExecutionContext): TypedFutureWrapper[U, E1] =
     new TypedFutureWrapper[U, E1](fut.recoverWith { case e: E if pf.isDefinedAt(e) => pf(e) })
 
@@ -72,12 +76,12 @@ class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T
   def flatMap[T1, E1 <: Throwable : ClassTag](f: T => TypedFutureWrapper[T1, E1])(implicit executor: ExecutionContext): TypedFutureWrapper[T1, E1] =
     new TypedFutureWrapper[T1, E1](fut.flatMap(f(_)).withExpectedError[E1])
 
-  def zip[T1, E1 >: E <: Throwable](that: TypedFutureWrapper[T1, E1]): TypedFutureWrapper[(T, T1), E1] = {
+  def zip[T1, E1 >: E <: Throwable : ClassTag](that: TypedFutureWrapper[T1, E1]): TypedFutureWrapper[(T, T1), E1] = {
     implicit val ec: ExecutionContext = parasitic
     flatMap(f1 => that.map(f2 => (f1, f2)))
   }
 
-  def zipWith[T1, E1 >: E <: Throwable, R](that: TypedFutureWrapper[T1, E1])(f: (T, T1) => R): TypedFutureWrapper[R, E1] = {
+  def zipWith[T1, E1 >: E <: Throwable : ClassTag, R](that: TypedFutureWrapper[T1, E1])(f: (T, T1) => R): TypedFutureWrapper[R, E1] = {
     implicit val ec: ExecutionContext = parasitic
     flatMap(f1 => that.map(f2 => f(f1, f2)))
   }
@@ -93,7 +97,7 @@ class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T
 
   def recoverUnexpectedError[T1 >: T, E1 >: E <: Throwable : ClassTag](f: PartialFunction[Throwable, Either[E, T]])(implicit executor: ExecutionContext): TypedFutureWrapper[T1, E1] =
     new TypedFutureWrapper(fut.recoverWith {
-//      case e: E => Future.failed(e)
+      //      case e: E => Future.failed(e)
       case e if !e.isInstanceOf[E] && f.isDefinedAt(e) => Future.fromTry(f(e).toTry)
     })
 
@@ -108,6 +112,8 @@ class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T
 }
 
 object TypedFutureWrapper {
+
+  type PureFuture[T] = TypedFutureWrapper[T, Nothing]
 
   implicit def typed2Vanilla[T, E <: Throwable](tf: TypedFutureWrapper[T, E]): Future[T] = tf.fut
 
