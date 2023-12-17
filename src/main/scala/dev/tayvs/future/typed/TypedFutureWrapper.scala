@@ -1,6 +1,8 @@
 package dev.tayvs.future.typed
 
 import dev.tayvs.future.typed.TypedFutureWrapper.{PureFuture, TypedFutureConstructor}
+
+import scala.reflect.classTag
 //import dev.tayvs.future.typed.v2.PureFuture
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -95,10 +97,10 @@ class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T
       }
     ))
 
-  def recoverUnexpectedError[T1 >: T, E1 >: E <: Throwable : ClassTag](f: PartialFunction[Throwable, Either[E, T]])(implicit executor: ExecutionContext): TypedFutureWrapper[T1, E1] =
+  def recoverUnexpectedError[T1 >: T, E1 >: E <: Throwable : ClassTag](f: PartialFunction[Throwable, Either[E1, T]])(implicit executor: ExecutionContext): TypedFutureWrapper[T1, E1] =
     new TypedFutureWrapper(fut.recoverWith {
       //      case e: E => Future.failed(e)
-      case e if !e.isInstanceOf[E] && f.isDefinedAt(e) => Future.fromTry(f(e).toTry)
+      case e if !classTag[E].runtimeClass.isInstance(e) && f.isDefinedAt(e) => Future.fromTry(f(e).toTry)
     })
 
   def toClassic: Future[T] = fut
