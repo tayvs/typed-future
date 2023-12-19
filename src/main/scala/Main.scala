@@ -35,4 +35,8 @@ object Main extends App {
   def divideSafe(a: Double, b: Double): TypedFutureWrapper[Double, ArithmeticException] =
     if (b == 0) TypedFutureWrapper.failed(new ArithmeticException("Division by zero")) else TypedFutureWrapper.successful(a / b)
 
+  val res: TypedFutureWrapper[Int, Throwable] /*: TypedFutureWrapper[Nothing, Exception]*/ = TypedFutureWrapper
+    .successful[Throwable](42)
+    .flatMap(_ => TypedFutureWrapper.successful[Nothing](12))
+
 }
