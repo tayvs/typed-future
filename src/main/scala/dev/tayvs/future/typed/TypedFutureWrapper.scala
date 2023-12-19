@@ -10,6 +10,8 @@ import scala.concurrent.ExecutionContext.parasitic
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
+// TODO: classTag could be moved from constructor to methods that actually require classTag.
+//  This will allow to extend AnyVAl and make implementation only compile time wrapper
 class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T]) /*extends AnyVal*/ {
 
   def failed: TypedFutureWrapper[E, Throwable] = new TypedFutureWrapper(fut.failed.flatMap {
@@ -100,6 +102,7 @@ class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T
   def recoverUnexpectedError[T1 >: T, E1 >: E <: Throwable : ClassTag](f: PartialFunction[Throwable, Either[E1, T]])(implicit executor: ExecutionContext): TypedFutureWrapper[T1, E1] =
     new TypedFutureWrapper(fut.recoverWith {
       //      case e: E => Future.failed(e)
+      // !classTag[E].runtimeClass.isInstance(e) opposite to e:E
       case e if !classTag[E].runtimeClass.isInstance(e) && f.isDefinedAt(e) => Future.fromTry(f(e).toTry)
     })
 
@@ -148,5 +151,7 @@ object TypedFutureWrapper {
     case Left(err) => TypedFutureWrapper.failed[T](err)
     case Right(v) => TypedFutureWrapper.successful[E].apply(v)
   }
+
+  def fromPure[T](e: T): PureFuture[T] = new TypedFutureWrapper(Future.successful(e))
 
 }
