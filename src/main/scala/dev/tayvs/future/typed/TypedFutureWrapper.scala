@@ -43,6 +43,9 @@ class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T
   def flatMap[S](f: T => Future[S])(implicit executor: ExecutionContext): TypedFutureWrapper[S, Throwable] =
     fut.flatMap(f).withExpectedError[Throwable]
 
+  def flatMap[T1, E1 <: Throwable : ClassTag](f: T => TypedFutureWrapper[T1, E1])(implicit executor: ExecutionContext): TypedFutureWrapper[T1, E1] =
+    new TypedFutureWrapper[T1, E1](fut.flatMap(f(_)).withExpectedError[E1])
+
   def flatten[S](implicit ev: T <:< TypedFutureWrapper[S, E]): TypedFutureWrapper[S, E] = {
     implicit val ec: ExecutionContext = parasitic
     flatMap[S, E](e => e)
@@ -76,9 +79,6 @@ class TypedFutureWrapper[T, E <: Throwable : ClassTag] private(val fut: Future[T
       case Failure(exception: E) => f(Left(exception))
       case Failure(_) => ()
     }
-
-  def flatMap[T1, E1 <: Throwable : ClassTag](f: T => TypedFutureWrapper[T1, E1])(implicit executor: ExecutionContext): TypedFutureWrapper[T1, E1] =
-    new TypedFutureWrapper[T1, E1](fut.flatMap(f(_)).withExpectedError[E1])
 
   def zip[T1, E1 >: E <: Throwable : ClassTag](that: TypedFutureWrapper[T1, E1]): TypedFutureWrapper[(T, T1), E1] = {
     implicit val ec: ExecutionContext = parasitic
