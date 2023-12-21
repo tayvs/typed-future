@@ -4,9 +4,9 @@ scalaVersion := "2.13.12"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "TypedFuture"
+    name := "typed-future"
   )
 
 organization := "dev.tayvs"
 githubOwner := "tayvs"
-githubRepository := "TypedFuture"
+githubRepository := "typed-future"
