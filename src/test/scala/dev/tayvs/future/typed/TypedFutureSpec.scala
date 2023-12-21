@@ -58,7 +58,7 @@ class TypedFutureSpec extends AnyFunSuite with Matchers with ScalaFutures {
     case class MyError(t: Throwable) extends Throwable(t)
 
     val ex = new ArithmeticException()
-    val tFuture: TypedFuture[Nothing, MyError] = TypedFuture.failed(ex).mapError(new Exception(_)).mapError(MyError)
+    val tFuture: TypedFuture[MyError, Nothing] = TypedFuture.failed(ex).mapError(new Exception(_)).mapError(MyError)
     val outError1: Throwable = tFuture.toClassic.failed.futureValue
     outError1 shouldBe a[MyError]
     val outError2 = outError1.asInstanceOf[MyError].t
@@ -80,7 +80,7 @@ class TypedFutureSpec extends AnyFunSuite with Matchers with ScalaFutures {
     case class MyError(n: Int) extends Throwable
     val ex = MyError(42)
     val failedClassicFuture: Future[Int] = Future.failed(ex)
-    val tFuture: TypedFuture[Int, ArithmeticException] = TypedFuture[ArithmeticException](failedClassicFuture).recoverUnexpectedError {
+    val tFuture: TypedFuture[ArithmeticException, Int] = TypedFuture[ArithmeticException](failedClassicFuture).recoverUnexpectedError {
       case e: MyError => Right(e.n)
     }
     tFuture.toClassic.futureValue shouldBe 42
