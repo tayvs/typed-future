@@ -26,9 +26,11 @@ case class MyError(t: Throwable) extends Throwable(t)
 
 val _: TypedFuture[Int, MyError] = TypedFuture.successful[MyError](21)
 val _: TypedFuture[Int, MyError] = TypedFuture.failed[Int](MyError(new Exception()))
-val _: TypedFuture[Int, MyError] = TypedFuture[MyError](Future.successful(12))
+val _: TypedFuture[Int, MyError] = TypedFuture[MyError](Future.successful(12)) // Type is required
 val _: TypedFuture[Int, MyError] = TypedFuture.fromEither[Int, MyError](Right(12))
 ```
+
+**Note**: TypeFuture's apply method should contain type of expected error. If you don't specify it, you will have compilation error.
 
 Another way to create an instance is to use implicit conversion
 
