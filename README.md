@@ -60,10 +60,10 @@ val _: PureFuture[Int] = TypedFuture.successful[Nothing](21)
 ```scala
 
 val _: PureFuture[String] = Future
-  .successful(12)                                                                  // Future[Int]
-  .withExpectedError[IllegalArgumentException]                                     // TypedFuture[Int, IllegalArgumentException]
-  .mapError(MyError(_))                                                            // TypedFuture[Int, MyError]
-  .map(_ + 1)                                                                      // TypedFuture[Int, MyError]
+  .successful(12)                                                           // Future[Int]
+  .withExpectedError[IllegalArgumentException]                              // TypedFuture[Int, IllegalArgumentException]
+  .mapError(MyError(_))                                                     // TypedFuture[Int, MyError]
+  .map(_ + 1)                                                               // TypedFuture[Int, MyError]
   .flatMap(i => TypedFuture.successful[MyError](i.toString))                // TypedFuture[String, MyError]
   .flatMap(i => TypedFuture.failed[String](YourError(new Exception(""))))   // TypedFuture[String, YourError]
   .flatMap(i => TypedFuture.failed[String](MyError(new Exception(""))))     // TypedFuture[String, MyError]
