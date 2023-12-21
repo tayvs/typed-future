@@ -1,5 +1,4 @@
-import dev.tayvs.future.typed.TypedFutureWrapper
-import dev.tayvs.future.typed.TypedFutureWrapper.{PureFuture, TypedFutureConstructor}
+import dev.tayvs.future.typed._
 
 import scala.concurrent.{ExecutionContext, Future}
 

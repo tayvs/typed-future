@@ -1,9 +1,7 @@
 package dev.tayvs.future.typed
 
-import dev.tayvs.future.typed.TypedFutureWrapper.{PureFuture, TypedFutureConstructor}
 
 import scala.reflect.classTag
-//import dev.tayvs.future.typed.v2.PureFuture
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.parasitic
@@ -12,9 +10,9 @@ import scala.util.{Failure, Success, Try}
 
 // TODO: classTag could be moved from constructor to methods that actually require classTag.
 //  This will allow to extend AnyVAl and make implementation only compile time wrapper
-class TypedFutureWrapper[+T, +E <: Throwable : ClassTag] private(val fut: Future[T]) /*extends AnyVal*/ {
+class TypedFutureWrapper[+T, +E <: Throwable : ClassTag] private[typed](val fut: Future[T]) /*extends AnyVal*/ {
 
-  def failed[E1 >: E <: Throwable: ClassTag]: TypedFutureWrapper[E1, Throwable] = new TypedFutureWrapper[E1, Throwable](fut.failed.flatMap {
+  def failed[E1 >: E <: Throwable : ClassTag]: TypedFutureWrapper[E1, Throwable] = new TypedFutureWrapper[E1, Throwable](fut.failed.flatMap {
     case e: E => Future.successful(e)
     case t => Future.failed(t)
   }(parasitic))
@@ -41,21 +39,21 @@ class TypedFutureWrapper[+T, +E <: Throwable : ClassTag] private(val fut: Future
   def map[S](f: T => S)(implicit executor: ExecutionContext): TypedFutureWrapper[S, E] = new TypedFutureWrapper(fut.map(f))
 
   // Breaks for-comprehension??
-//  def flatMap[S](f: T => Future[S])(implicit executor: ExecutionContext): TypedFutureWrapper[S, Throwable] =
-//    fut.flatMap(f).withExpectedError[Throwable]
+  //  def flatMap[S](f: T => Future[S])(implicit executor: ExecutionContext): TypedFutureWrapper[S, Throwable] =
+  //    fut.flatMap(f).withExpectedError[Throwable]
 
   def flatMap[T1, E1 >: E <: Throwable : ClassTag](f: T => TypedFutureWrapper[T1, E1])(implicit executor: ExecutionContext): TypedFutureWrapper[T1, E1] =
-    new TypedFutureWrapper[T1, E1](fut.flatMap(f(_).fut)/*.withExpectedError[E1]*/)
+    new TypedFutureWrapper[T1, E1](fut.flatMap(f(_).fut))
 
-  def flatten[S, E1 >: E <: Throwable: ClassTag](implicit ev: T <:< TypedFutureWrapper[S, E1]): TypedFutureWrapper[S, E1] = {
+  def flatten[S, E1 >: E <: Throwable : ClassTag](implicit ev: T <:< TypedFutureWrapper[S, E1]): TypedFutureWrapper[S, E1] = {
     implicit val ec: ExecutionContext = parasitic
     flatMap[S, E1](e => e)
   }
 
-  def filter[E1 >: E <: Throwable: ClassTag](p: T => Boolean)(orError: E1)(implicit executor: ExecutionContext): TypedFutureWrapper[T, E1] =
+  def filter[E1 >: E <: Throwable : ClassTag](p: T => Boolean)(orError: E1)(implicit executor: ExecutionContext): TypedFutureWrapper[T, E1] =
     this.flatMap(v => if (p(v)) this else TypedFutureWrapper.failed[T](orError))
 
-  def collect[S, E1 >: E <: Throwable: ClassTag](pf: PartialFunction[T, S])(orElse: E1)(implicit executor: ExecutionContext): TypedFutureWrapper[S, E1] =
+  def collect[S, E1 >: E <: Throwable : ClassTag](pf: PartialFunction[T, S])(orElse: E1)(implicit executor: ExecutionContext): TypedFutureWrapper[S, E1] =
     this.flatMap(v => pf.lift.apply(v).map(TypedFutureWrapper.successful[E](_)).getOrElse(TypedFutureWrapper.failed[S](orElse)))
 
   def recover[U >: T](pf: PartialFunction[E, U])(implicit executor: ExecutionContext): TypedFutureWrapper[U, E] =
@@ -119,10 +117,6 @@ class TypedFutureWrapper[+T, +E <: Throwable : ClassTag] private(val fut: Future
 
 object TypedFutureWrapper {
 
-  type PureFuture[T] = TypedFutureWrapper[T, Nothing]
-
-//  implicit def typed2Vanilla[T, E <: Throwable](tf: TypedFutureWrapper[T, E]): Future[T] = tf.fut
-
   class Successful[E <: Throwable /*: ClassTag*/ ] extends AnyRef {
     def apply[T](v: T)(implicit ct: ClassTag[E]): TypedFutureWrapper[T, E] = new TypedFutureWrapper[T, E](Future.successful(v))
   }
@@ -135,13 +129,6 @@ object TypedFutureWrapper {
     def apply[T](f: Future[T])(implicit ct: ClassTag[E]): TypedFutureWrapper[T, E] = new TypedFutureWrapper[T, E](f)
   }
 
-  implicit class TypedFutureConstructor[T](val fut: Future[T]) extends AnyVal {
-    def withExpectedError[E <: Throwable : ClassTag]: TypedFutureWrapper[T, E] = new TypedFutureWrapper[T, E](fut)
-  }
-
-  implicit class TypedFutureConstructorFromEither[E <: Throwable, T](val fut: Future[Either[E, T]]) extends AnyVal {
-    def toTyped(implicit ct: ClassTag[E]): TypedFutureWrapper[T, E] = TypedFutureWrapper.fromEither(fut)
-  }
 
   //  def apply[T, E <: Throwable: ClassTag](fut: Future[T]): dev.tayvs.future.typed.TypedFuture[T, E] = new dev.tayvs.future.typed.TypedFuture[T, E](fut)
   def apply[E <: Throwable /*: ClassTag*/ ] = new Apply[E]
@@ -157,7 +144,7 @@ object TypedFutureWrapper {
     case Right(v) => TypedFutureWrapper.successful[E].apply(v)
   }
 
-  def fromEither[E <: Throwable : ClassTag, T](f: Future[Either[E, T]]): TypedFutureWrapper[T, E] =
+  def fromEitherF[E <: Throwable : ClassTag, T](f: Future[Either[E, T]]): TypedFutureWrapper[T, E] =
     new TypedFutureWrapper[T, E](f.flatMap {
       case Left(err) => Future.failed[T](err)
       case Right(v) => Future.successful(v)

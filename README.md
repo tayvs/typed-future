@@ -16,7 +16,7 @@ Library treat exception in the similar way as java. Future could have expected (
 The second one is not represented in type.
 
 ### Pure Future??
-You can create instance of `PureFuture` which is aliase for `TypedFuture[T, Nothing]`. It used to show that TypedFuture have no expected error.
+You can create instance of `PureFuture` which is aliases for `TypedFuture[T, Nothing]`. It used to show that TypedFuture have no expected error.
 
 ### How to get an instance
 Because TypedFuture is a wrapper it could be instantiated using existing Future or using "pure" values.
@@ -33,7 +33,7 @@ val _: TypedFutureWrapper[Int, MyError] = TypedFutureWrapper.fromEither[Int, MyE
 Another way to create an instance is to use implicit conversion
 
 ```scala
-import dev.tayvs.future.typed.TypedFutureWrapper.TypedFutureConstructor
+import dev.tayvs.future.typed._
 
 Future
     .successful(12)
