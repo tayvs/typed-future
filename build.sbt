@@ -1,14 +1,13 @@
-version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.1.0-SNAPSHOT"
 
-scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "2.13.12"
 
 //crossScalaVersions := Seq("2.13.12", "3.3.1")
 
-scalacOptions ++= Seq(          // use ++= to add to existing options
+ThisBuild / scalacOptions ++= Seq(          // use ++= to add to existing options
   "-encoding", "utf8",          // if an option takes an arg, supply it on the same line
   "-feature",                   // then put the next option on a new line for easy editing
   "-language:implicitConversions",
-  "-language:existentials",
   "-unchecked",
   "-deprecation",
   "-Werror",
@@ -20,6 +19,8 @@ lazy val root = (project in file("."))
     name := "typed-future"
   )
 
-organization := "dev.tayvs"
-githubOwner := "tayvs"
-githubRepository := "typed-future"
+ThisBuild / versionScheme := Some("early-semver")
+
+ThisBuild / organization := "dev.tayvs"
+ThisBuild / githubOwner := "tayvs"
+ThisBuild / githubRepository := "typed-future"

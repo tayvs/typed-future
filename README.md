@@ -1,4 +1,4 @@
-# TypedFuture
+# TypedFuture (Experimental/Alpha/Beta/ApiMayChange)
 Scala futures with expected (checked) error type. Returned type will better represent errors that could be returned.
 Future value just wrapped with safe wrapper with future-like methods that respect expected error type.
 
