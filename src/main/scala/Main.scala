@@ -12,6 +12,7 @@ object Main extends App {
   val un1: TypedFuture[Int, MyError] = TypedFuture.successful[MyError](21)
   val un2: TypedFuture[Int, MyError] = TypedFuture.failed[Int](MyError(new Exception()))
   val un3: TypedFuture[Int, MyError] = TypedFuture[MyError](Future.successful(12))
+  val un4: TypedFuture[Int, MyError] = TypedFuture.fromTry[MyError](util.Try(12))
 
   val r: PureFuture[String] = Future
     .successful(12)
