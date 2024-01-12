@@ -130,7 +130,7 @@ object TypedFuture {
   }
 
   class Try_[E <: Throwable] extends AnyRef {
-    def apply[T](t: Try[T]): TypedFuture[T, E] = new TypedFuture[T, E](Future.fromTry(t))
+    def apply[T](t: Try[T])(implicit ct: ClassTag[E]): TypedFuture[E, T] = new TypedFuture[E, T](Future.fromTry(t))
   }
 
   //  def apply[T, E <: Throwable: ClassTag](fut: Future[T]): dev.tayvs.future.typed.TypedFuture[T, E] = new dev.tayvs.future.typed.TypedFuture[T, E](fut)

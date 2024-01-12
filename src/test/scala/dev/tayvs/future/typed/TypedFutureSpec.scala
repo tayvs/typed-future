@@ -28,6 +28,16 @@ class TypedFutureSpec extends AnyFunSuite with Matchers with ScalaFutures {
     TypedFuture[Nothing](Future.failed(ex)).toClassic.failed.futureValue shouldBe ex
   }
 
+  test("Future fromTry with success should wrap it with same value") {
+    TypedFuture.fromTry[ArithmeticException](util.Try(42)).toClassic.futureValue shouldBe 42
+  }
+
+  test("Future fromTry with failed try should wrap it with same value") {
+    val ex = new ArithmeticException()
+    val tf: TypedFuture[ArithmeticException, Int] = TypedFuture.fromTry[ArithmeticException](util.Failure[Int](ex))
+    tf.toClassic.failed.futureValue shouldBe ex
+  }
+
   test("map should map underlying future") {
     TypedFuture.successful(42).map(_ + 1).toClassic.futureValue shouldBe 43
   }
