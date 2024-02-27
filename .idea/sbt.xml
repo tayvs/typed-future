@@ -9,6 +9,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/project" />
+            <option value="$PROJECT_DIR$/scala3-test" />
           </set>
         </option>
         <option name="resolveSbtClassifiers" value="true" />
