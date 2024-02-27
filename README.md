@@ -7,7 +7,7 @@ Future value just wrapped with safe wrapper with future-like methods that respec
   def divide(a: Double, b: Double): Future[Double] =
     if (b == 0) Future.failed(new ArithmeticException("Division by zero")) else Future.successful(a / b)
 
-  def divideSafe(a: Double, b: Double): TypedFuture[Double, ArithmeticException] =
+  def divideSafe(a: Double, b: Double): TypedFuture[ArithmeticException, Double] =
     if (b == 0) TypedFuture.failed(new ArithmeticException("Division by zero")) else TypedFuture.successful(a / b)
 ```
 
@@ -16,7 +16,7 @@ Library treat exception in the similar way as java. Future could have expected (
 The second one is not represented in type.
 
 ### Pure Future??
-You can create instance of `PureFuture` which is aliases for `TypedFuture[T, Nothing]`. It used to show that TypedFuture have no expected error.
+You can create instance of `PureFuture` which is aliases for `TypedFuture[Nothing, T]`. It used to show that TypedFuture have no expected error.
 
 ### How to get an instance
 Because TypedFuture is a wrapper it could be instantiated using existing Future or using "pure" values.
@@ -24,11 +24,14 @@ Because TypedFuture is a wrapper it could be instantiated using existing Future 
 ```scala
 case class MyError(t: Throwable) extends Throwable(t)
 
-val _: TypedFuture[Int, MyError] = TypedFuture.successful[MyError](21)
-val _: TypedFuture[Int, MyError] = TypedFuture.failed[Int](MyError(new Exception()))
-val _: TypedFuture[Int, MyError] = TypedFuture[MyError](Future.successful(12))
-val _: TypedFuture[Int, MyError] = TypedFuture.fromEither[Int, MyError](Right(12))
+val _: TypedFuture[MyError, Int] = TypedFuture.successful[MyError](21)
+val _: TypedFuture[MyError, Int] = TypedFuture.failed[Int](MyError(new Exception()))
+val _: TypedFuture[MyError, Int] = TypedFuture[MyError](Future.successful(12)) // Type is required
+val _: TypedFuture[MyError, Int] = TypedFuture.fromEither[Int, MyError](Right(12))
+val _: TypedFuture[MyError, Int] = TypedFuture.fromTry[MyError](Try(42))
 ```
+
+**Note**: TypeFuture's apply method should contain type of expected error. If you don't specify it, you will have compilation error.
 
 Another way to create an instance is to use implicit conversion
 
@@ -44,7 +47,7 @@ And PureFuture... well there only two (2,5) ways to get it.
 
 ```scala
 // 1. Recover TypedFuture
-def divideSafe(a: Double, b: Double): TypedFuture[Double, ArithmeticException] = ???
+def divideSafe(a: Double, b: Double): TypedFuture[ArithmeticException, Double] = ???
 
 val _: PureFuture[Double] = divideSafe(10, 0).recover(_ => Double.PositiveInfinity)
 
@@ -61,11 +64,32 @@ val _: PureFuture[Int] = TypedFuture.successful[Nothing](21)
 
 val _: PureFuture[String] = Future
   .successful(12)                                                           // Future[Int]
-  .withExpectedError[IllegalArgumentException]                              // TypedFuture[Int, IllegalArgumentException]
-  .mapError(MyError(_))                                                     // TypedFuture[Int, MyError]
-  .map(_ + 1)                                                               // TypedFuture[Int, MyError]
-  .flatMap(i => TypedFuture.successful[MyError](i.toString))                // TypedFuture[String, MyError]
-  .flatMap(i => TypedFuture.failed[String](YourError(new Exception(""))))   // TypedFuture[String, YourError]
-  .flatMap(i => TypedFuture.failed[String](MyError(new Exception(""))))     // TypedFuture[String, MyError]
+  .withExpectedError[IllegalArgumentException]                              // TypedFuture[IllegalArgumentException, Int]
+  .mapError(MyError(_))                                                     // TypedFuture[MyError, Int]
+  .map(_ + 1)                                                               // TypedFuture[MyError, Int]
+  .flatMap(i => TypedFuture.successful[MyError](i.toString))                // TypedFuture[MyError, String]
+  .flatMap(i => TypedFuture.failed[String](YourError(new Exception(""))))   // TypedFuture[YourError, String]
+  .flatMap(i => TypedFuture.failed[String](MyError(new Exception(""))))     // TypedFuture[MyError, String]
   .recover(e => "0")
+```
+
+### Known limitations
+Typed Future uses `classTag` of an error for manipulations with the error. A classTag established on Future creation or error mapping. Therefor error type uplifting could not work correctly.
+
+*Note:* Actually TypedFuture is not covariant by error type and error type will be non-variant in a future (0.3 ?).
+
+Example
+```scala
+trait CustomError extends Throwable
+class CustomError1 extends CustomError
+class CustomError2 extends CustomError
+
+// CustomError1 is expected error and CustomError2 is not.
+// After error type uplifting TypedFuture will still hold classTag for CustomError1.
+// So Despite CustomError in result definition CustomError2 will not be treated as expected value. 
+def errorUplifting: TypedFuture[CustomError, Any] =
+  Future.failed(new CustomError2).withExpectedError[CustomError1]
+  
+// The right way to do is use final expected error type. Like this
+Future.failed(new CustomError2).withExpectedError[CustomError]
 ```

@@ -16,7 +16,8 @@ ThisBuild / scalacOptions ++= Seq(          // use ++= to add to existing option
 
 lazy val root = (project in file("."))
   .settings(
-    name := "typed-future"
+    name := "typed-future",
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test
   )
 
 ThisBuild / versionScheme := Some("early-semver")
