@@ -72,3 +72,24 @@ val _: PureFuture[String] = Future
   .flatMap(i => TypedFuture.failed[String](MyError(new Exception(""))))     // TypedFuture[MyError, String]
   .recover(e => "0")
 ```
+
+### Known limitations
+Typed Future uses `classTag` of an error for manipulations with the error. A classTag established on Future creation or error mapping. Therefor error type uplifting could not work correctly.
+
+*Note:* Actually TypedFuture is not covariant by error type and error type will be non-variant in a future (0.3 ?).
+
+Example
+```scala
+trait CustomError extends Throwable
+class CustomError1 extends CustomError
+class CustomError2 extends CustomError
+
+// CustomError1 is expected error and CustomError2 is not.
+// After error type uplifting TypedFuture will still hold classTag for CustomError1.
+// So Despite CustomError in result definition CustomError2 will not be treated as expected value. 
+def errorUplifting: TypedFuture[CustomError, Any] =
+  Future.failed(new CustomError2).withExpectedError[CustomError1]
+  
+// The right way to do is use final expected error type. Like this
+Future.failed(new CustomError2).withExpectedError[CustomError]
+```
