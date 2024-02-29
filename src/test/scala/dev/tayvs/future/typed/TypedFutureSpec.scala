@@ -48,11 +48,13 @@ class TypedFutureSpec extends AnyFunSuite with Matchers with ScalaFutures {
   }
 
   test("flatMap should flatMap underlying future") {
-    TypedFuture.successful(42).flatMap(i => TypedFuture.successful(i + 1)).toClassic.futureValue shouldBe 43
+    // TODO: Type is not deriving
+    TypedFuture.successful(42).flatMap(i => TypedFuture.successful[Throwable](i + 1)).toClassic.futureValue shouldBe 43
   }
 
   test("flatMap with failed future should use failed error from seconds future") {
     val ex = new ArithmeticException()
+    // TODO: Type is not deriving
     TypedFuture.successful(42).flatMap(i => TypedFuture.failed(ex)).toClassic.failed.futureValue shouldBe ex
   }
 
@@ -105,8 +107,8 @@ class TypedFutureSpec extends AnyFunSuite with Matchers with ScalaFutures {
       .mapError(MyError(_))
       .map(_ + 1)
       .flatMap(i => TypedFuture.successful[MyError](i.toString))
-      .flatMap(_ => TypedFuture.failed[String](YourError(new Exception(""))))
-      .flatMap(_ => TypedFuture.failed[String](MyError(new Exception(""))))
+      .flatMap(_ => TypedFuture.failed[String](YourError(new Exception(""))).upliftError[Throwable])
+      .flatMap(_ => TypedFuture.failed[String](MyError(new Exception(""))).upliftError)
       .recover(_ => "0")
       .toClassic.futureValue shouldBe "0"
   }
