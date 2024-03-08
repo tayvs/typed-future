@@ -1,6 +1,8 @@
 package dev.tayvs.future.typed
 
 
+import dev.tayvs.future.typed.CovariantCasting.Aux
+
 import scala.reflect.classTag
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.parasitic
@@ -115,14 +117,22 @@ class TypedFuture[E <: Throwable /* : ClassTag*/ , +T] private[typed](val fut: F
       case Failure(exception) => Failure(exception)
     }(parasitic)
 
-  def upliftError[E1 <: Throwable/* : ClassTag*/]: TypedFuture[E1, T] = new TypedFuture[E1, T](fut)
+  def upliftError[E1 >: E <: Throwable/* : ClassTag*/]: TypedFuture[E1, T] = new TypedFuture[E1, T](fut)
+//  def upliftErrorAux[EE >: E <: Throwable/* : ClassTag*/](implicit aux: Aux[E, EE, T]): TypedFuture[EE, T] = aux.uplift(this)
+
+//  type TF[EEE <: Throwable] = TypedFuture[EEE, T]
+  def upliftErrorAux[EE >: E <: Throwable/* : ClassTag*/](implicit aux: Aux[E, EE/*, T*/]): TypedFuture[EE, T] = aux.uplift(this)
 }
 
 object TypedFuture {
 
-  // TODO: not working. AUX pattern would help
-  implicit def autoErrorUplifting[E <: Throwable, E1 >: E <: Throwable, T](tf: TypedFuture[E, T]): TypedFuture[E1, T] =
-    new TypedFuture[E1, T](tf.fut)
+  implicit def cast[T, E <: Throwable, EE >: E <: Throwable](from: TypedFuture[E, T])
+                                                            (implicit aux: Aux[E, EE]): TypedFuture[EE, T] =
+    aux.uplift(from)
+
+//  // TODO: not working. AUX pattern would help
+//  implicit def autoErrorUplifting[E <: Throwable, E1 >: E <: Throwable, T](tf: TypedFuture[E, T]): TypedFuture[E1, T] =
+//    new TypedFuture[E1, T](tf.fut)
 
   class Successful[E <: Throwable /*: ClassTag*/ ] extends AnyRef {
     def apply[T](v: T) /*(implicit ct: ClassTag[E])*/ : TypedFuture[E, T] = new TypedFuture[E, T](Future.successful(v))

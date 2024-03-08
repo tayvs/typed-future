@@ -99,16 +99,19 @@ class TypedFutureSpec extends AnyFunSuite with Matchers with ScalaFutures {
   }
 
   test("long chain should computes properly") {
-    case class MyError(t: Throwable) extends Throwable(t)
-    case class YourError(t: Throwable) extends Throwable(t)
+
+    sealed abstract class CustomErrors(cause: Throwable) extends Throwable(cause)
+    case class MyError(t: Throwable) extends CustomErrors(t)
+    case class YourError(t: Throwable) extends CustomErrors(t)
+
     Future
       .successful(12)
       .withExpectedError[IllegalArgumentException]
       .mapError(MyError(_))
       .map(_ + 1)
       .flatMap(i => TypedFuture.successful[MyError](i.toString))
-      .flatMap(_ => TypedFuture.failed[String](YourError(new Exception(""))).upliftError[Throwable])
-      .flatMap(_ => TypedFuture.failed[String](MyError(new Exception(""))).upliftError)
+      .flatMap(_ => TypedFuture.failed[String](YourError(new Exception(""))).upliftErrorAux[CustomErrors])
+      .flatMap(_ => TypedFuture.failed[String](MyError(new Exception(""))).upliftError[CustomErrors])
       .recover(_ => "0")
       .toClassic.futureValue shouldBe "0"
   }
