@@ -36,11 +36,11 @@ val _: TypedFuture[MyError, Int] = TypedFuture.fromTry[MyError](Try(42))
 Another way to create an instance is to use implicit conversion
 
 ```scala
-import dev.tayvs.future.typed._
+
 
 Future
-    .successful(12)
-    .withExpectedError[IllegalArgumentException]
+  .successful(12)
+  .withExpectedError[IllegalArgumentException]
 ```
 
 And PureFuture... well there only two (2,5) ways to get it.

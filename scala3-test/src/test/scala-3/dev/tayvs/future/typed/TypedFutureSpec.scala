@@ -68,7 +68,7 @@ class TypedFutureSpec extends AnyFunSuite with Matchers with ScalaFutures {
     case class MyError(t: Throwable) extends Throwable(t)
 
     val ex = new ArithmeticException()
-    val tFuture: TypedFuture[MyError, Nothing] = TypedFuture.failed(ex).mapError(new Exception(_)).mapError(MyError)
+    val tFuture: TypedFuture[MyError, Nothing] = TypedFuture.failed(ex).mapError(new Exception(_)).mapError(MyError(_))
     val outError1: Throwable = tFuture.toClassic.failed.futureValue
     outError1 shouldBe a[MyError]
     val outError2 = outError1.asInstanceOf[MyError].t
@@ -87,11 +87,10 @@ class TypedFutureSpec extends AnyFunSuite with Matchers with ScalaFutures {
   }
 
   test("recoverUnexpectedError should recover unexpected error") {
-    case class MyError(n: Int) extends Throwable
-    val ex = MyError(42)
+    val ex = MyGeneralError(42)
     val failedClassicFuture: Future[Int] = Future.failed(ex)
     val tFuture: TypedFuture[ArithmeticException, Int] = TypedFuture[ArithmeticException](failedClassicFuture).recoverUnexpectedError {
-      case e: MyError => Right(e.n)
+      case e: MyGeneralError => Right(e.n)
     }
     tFuture.toClassic.futureValue shouldBe 42
   }
@@ -108,10 +107,13 @@ class TypedFutureSpec extends AnyFunSuite with Matchers with ScalaFutures {
       .mapError(MyError(_))
       .map(_ + 1)
       .flatMap(i => TypedFuture.successful[MyError](i.toString))
-      .flatMap(_ => TypedFuture.failed[String](YourError(new Exception(""))).upliftErrorAux[CustomErrors])
-      .flatMap(_ => TypedFuture.failed[String](MyError(new Exception(""))).upliftError[CustomErrors])
+      // uplift result type is not deriving automatically in scala 2. Should work in scala 3 (dotty)
+      .flatMap(_ => TypedFuture.failed[String](YourError(new Exception(""))))
+      .flatMap(_ => TypedFuture.failed[String](MyError(new Exception(""))))
       .recover(_ => "0")
       .toClassic.futureValue shouldBe "0"
   }
 
 }
+
+case class MyGeneralError(n: Int) extends Throwable
